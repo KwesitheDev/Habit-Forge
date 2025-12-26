@@ -4,7 +4,7 @@ import { View, Text } from "react-native";
 const HomeScreen = () => {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>Welcome to the Home Screen!</Text>
+      <Text>Welcome to Habit Forge</Text>
     </View>
   );
 };
