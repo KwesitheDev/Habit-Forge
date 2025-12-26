@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getMessaging } from "firebase/messaging";
+import * as Notifications from "expo-notifications";
+//import { getMessaging } from "firebase/messaging";
+// commented out to check errors during build
 
 //Firebase configuration
 const firebaseConfig = {
@@ -24,4 +26,43 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 //Initialize firebase cloud messaging
-export const messaging = getMessaging(app);
+//export const messaging = getMessaging(app);
+
+// Expo Notifications handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+//handle incoming notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+//register for push notifications
+
+export async function registerForPushNotificationsAsync() {
+  let token;
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== "granted") {
+    console.log("Failed to get push token for push notification!");
+    return;
+  }
+  token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log(token);
+  return token;
+}

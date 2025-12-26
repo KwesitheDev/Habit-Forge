@@ -1,6 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../config/firebase";
-
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -14,13 +13,12 @@ import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const AuthContext = createContext({});
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Monitor authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -29,36 +27,52 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  // login func
   const login = async (email, password) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      throw error; // Let UI handle specific messages
     }
   };
 
-  // register func
   const register = async (email, password) => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      throw error;
     }
   };
 
-  // logout func
-  const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      throw err;
-    }
-  };
+  const logout = async () => await signOut(auth);
 
-  // Google Sign-In
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
     webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
   });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { authentication } = response;
+      const credential = GoogleAuthProvider.credential(authentication.idToken);
+      signInWithCredential(auth, credential);
+    }
+  }, [response]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        promptGoogle: promptAsync,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+export const useAuth = () => useContext(AuthContext);
