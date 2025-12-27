@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-export default function DashboardScreen({ onAddHabit, onNavigate }) {
+export default function DashboardScreen({ onAddHabit, navigation }) {
   const [habits, setHabits] = useState([
     {
       id: 1,
@@ -160,7 +160,7 @@ export default function DashboardScreen({ onAddHabit, onNavigate }) {
 
         {/* Floating Action Button */}
         <TouchableOpacity
-          onPress={onAddHabit}
+          onPress={() => navigation.navigate("CreateHabit")}
           style={styles.fab}
           activeOpacity={0.8}
         >
@@ -176,7 +176,7 @@ export default function DashboardScreen({ onAddHabit, onNavigate }) {
 
           <TouchableOpacity
             style={styles.navButton}
-            onPress={() => onNavigate("analytics")}
+            onPress={() => navigation.navigate("analytics")}
           >
             <Ionicons name="bar-chart" size={24} color="#94a3b8" />
             <Text style={styles.navLabel}>Analytics</Text>
