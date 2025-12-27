@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -85,6 +85,7 @@ export default function LoginScreen({ navigation }) {
           onPress={async () => {
             try {
               await login(email, password);
+              navigation.navigate("Dashboard");
             } catch (error) {
               Alert.alert("Login Error", error.message);
             }
