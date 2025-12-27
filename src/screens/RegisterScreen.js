@@ -262,6 +262,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
     borderRadius: 12,
+    width: "90%",
   },
   socialButtonText: {
     fontSize: 14,
