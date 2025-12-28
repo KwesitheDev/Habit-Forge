@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,61 +9,49 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "../context/AuthContext";
+import { subscribeToHabits } from "../services/firestore";
+import { Alert } from "react-native";
 
-export default function DashboardScreen({ onAddHabit, navigation }) {
-  const [habits, setHabits] = useState([
-    {
-      id: 1,
-      name: "Morning Meditation",
-      streak: 12,
-      progress: 75,
-      completed: true,
-      icon: "🧘",
-      color: "#f3e8ff",
-    },
-    {
-      id: 2,
-      name: "Drink Water",
-      streak: 8,
-      progress: 50,
-      completed: false,
-      icon: "💧",
-      color: "#dbeafe",
-    },
-    {
-      id: 3,
-      name: "Exercise",
-      streak: 5,
-      progress: 90,
-      completed: true,
-      icon: "💪",
-      color: "#fed7aa",
-    },
-    {
-      id: 4,
-      name: "Read 30 Minutes",
-      streak: 15,
-      progress: 60,
-      completed: false,
-      icon: "📚",
-      color: "#d1fae5",
-    },
-    {
-      id: 5,
-      name: "Gratitude Journal",
-      streak: 20,
-      progress: 85,
-      completed: true,
-      icon: "✨",
-      color: "#fef3c7",
-    },
-  ]);
+// Map category ID → emoji for display
+const CATEGORY_EMOJIS = {
+  health: "❤️",
+  mind: "🧘",
+  productivity: "⚡",
+  fitness: "💪",
+  learning: "📚",
+  social: "👥",
+};
+
+export default function DashboardScreen({ navigation }) {
+  const { user } = useAuth();
+  const [habits, setHabits] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = subscribeToHabits(user.uid, setHabits);
+    return () => unsubscribe();
+  }, [user]);
+
+  // Temporary mock values until check-in/streak logic (Session 6)
+  const getDisplayData = (habit) => ({
+    name: habit.name,
+    streak: 0, // placeholder
+    progress: Math.floor(Math.random() * 100), // placeholder
+    completed: false, // placeholder
+    icon:
+      habit.categories?.length > 0
+        ? CATEGORY_EMOJIS[habit.categories[0]] || "🎯"
+        : "🎯",
+    color: habit.color ? `${habit.color}22` : "#e0f2fe", // 22 = ~13% opacity
+  });
 
   const toggleHabit = (id) => {
-    setHabits(
-      habits.map((h) => (h.id === id ? { ...h, completed: !h.completed } : h))
-    );
+    // Placeholder — real check-in in next session
+    Alert.alert("Coming soon", "Daily check-in arriving in next update!");
   };
+
+  const totalStreak = habits.reduce((sum, h) => sum + (h.streak || 0), 0); // placeholder
 
   return (
     <SafeAreaView style={styles.container}>
@@ -93,7 +81,7 @@ export default function DashboardScreen({ onAddHabit, navigation }) {
                 <Text style={styles.statsLabel}>Current Streak</Text>
                 <View style={styles.streakRow}>
                   <Ionicons name="flame" size={32} color="#fff" />
-                  <Text style={styles.streakNumber}>12</Text>
+                  <Text style={styles.streakNumber}>{totalStreak}</Text>
                   <Text style={styles.streakDays}>days</Text>
                 </View>
               </View>
@@ -111,54 +99,71 @@ export default function DashboardScreen({ onAddHabit, navigation }) {
           contentContainerStyle={styles.habitsListContent}
           showsVerticalScrollIndicator={false}
         >
-          {habits.map((habit) => (
-            <View key={habit.id} style={styles.habitCard}>
-              <View style={styles.habitRow}>
-                <View
-                  style={[styles.habitIcon, { backgroundColor: habit.color }]}
-                >
-                  <Text style={styles.habitEmoji}>{habit.icon}</Text>
-                </View>
-
-                <View style={styles.habitInfo}>
-                  <Text style={styles.habitName}>{habit.name}</Text>
-                  <View style={styles.habitMeta}>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="flame" size={14} color="#f97316" />
-                      <Text style={styles.metaText}>{habit.streak} days</Text>
+          {habits.length === 0 ? (
+            <Text style={styles.emptyText}>
+              No habits yet. Tap + to create your first!
+            </Text>
+          ) : (
+            habits.map((habit) => {
+              const display = getDisplayData(habit);
+              return (
+                <View key={habit.id} style={styles.habitCard}>
+                  <View style={styles.habitRow}>
+                    <View
+                      style={[
+                        styles.habitIcon,
+                        { backgroundColor: display.color },
+                      ]}
+                    >
+                      <Text style={styles.habitEmoji}>{display.icon}</Text>
                     </View>
-                    <Text style={styles.metaDot}>•</Text>
-                    <Text style={styles.metaText}>
-                      {habit.progress}% this week
-                    </Text>
+
+                    <View style={styles.habitInfo}>
+                      <Text style={styles.habitName}>{display.name}</Text>
+                      <View style={styles.habitMeta}>
+                        <View style={styles.metaItem}>
+                          <Ionicons name="flame" size={14} color="#f97316" />
+                          <Text style={styles.metaText}>
+                            {display.streak} days
+                          </Text>
+                        </View>
+                        <Text style={styles.metaDot}>•</Text>
+                        <Text style={styles.metaText}>
+                          {display.progress}% this week
+                        </Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => toggleHabit(habit.id)}
+                      style={[
+                        styles.checkButton,
+                        display.completed
+                          ? styles.checkButtonCompleted
+                          : styles.checkButtonUncompleted,
+                      ]}
+                    >
+                      {display.completed && (
+                        <Ionicons name="checkmark" size={18} color="#fff" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.progressBarContainer}>
+                    <View
+                      style={[
+                        styles.progressBar,
+                        { width: `${display.progress}%` },
+                      ]}
+                    />
                   </View>
                 </View>
-
-                <TouchableOpacity
-                  onPress={() => toggleHabit(habit.id)}
-                  style={[
-                    styles.checkButton,
-                    habit.completed
-                      ? styles.checkButtonCompleted
-                      : styles.checkButtonUncompleted,
-                  ]}
-                >
-                  {habit.completed && (
-                    <Ionicons name="checkmark" size={18} color="#fff" />
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[styles.progressBar, { width: `${habit.progress}%` }]}
-                />
-              </View>
-            </View>
-          ))}
+              );
+            })
+          )}
         </ScrollView>
 
-        {/* Floating Action Button */}
+        {/* FAB */}
         <TouchableOpacity
           onPress={() => navigation.navigate("CreateHabit")}
           style={styles.fab}
@@ -167,21 +172,16 @@ export default function DashboardScreen({ onAddHabit, navigation }) {
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
 
-        {/* Bottom Navigation */}
+        {/* Bottom Nav */}
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navButton}>
             <Ionicons name="home" size={24} color="#0d9488" />
             <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => navigation.navigate("analytics")}
-          >
+          <TouchableOpacity style={styles.navButton}>
             <Ionicons name="bar-chart" size={24} color="#94a3b8" />
             <Text style={styles.navLabel}>Analytics</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.navButton}>
             <Ionicons name="person" size={24} color="#94a3b8" />
             <Text style={styles.navLabel}>Profile</Text>
