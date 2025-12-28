@@ -12,3 +12,20 @@ export const addHabit = async (uid, habitData) => {
   });
   return docRef.id;
 };
+
+export const subscribeToHabits = (uid, callback) => {
+  if (!uid) return () => {};
+
+  const habitsQuery = query(
+    collection(db, "users", uid, "habits"),
+    orderBy("createdAt", "desc")
+  );
+
+  return onSnapshot(habitsQuery, (snapshot) => {
+    const habits = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    callback(habits);
+  });
+};
