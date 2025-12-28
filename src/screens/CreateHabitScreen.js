@@ -9,8 +9,8 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
-// TODO: Implement actual AI motivational insights fetching logic
+import { useAuth } from "../context/AuthContext";
+import { addHabit } from "../services/firestore";
 
 const CATEGORIES = [
   { id: "health", label: "Health", emoji: "❤️" },
@@ -21,12 +21,26 @@ const CATEGORIES = [
   { id: "social", label: "Social", emoji: "👥" },
 ];
 
+const COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#84cc16",
+  "#10b981",
+  "#0d9488",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+];
+
 export default function AddHabitScreen({ navigation }) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [frequency, setFrequency] = useState("daily");
   const [reminderTime, setReminderTime] = useState("08:00");
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedColor, setSelectedColor] = useState("#0d9488"); // default teal
   const [loading, setLoading] = useState(false);
 
   const toggleCategory = (id) => {
@@ -40,14 +54,26 @@ export default function AddHabitScreen({ navigation }) {
       Alert.alert("Error", "Habit name is required");
       return;
     }
+    if (!user) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
 
     setLoading(true);
     try {
-      // Add your habit creation logic here
-      // await addHabit({ name, description, frequency, reminderTime, categories: selectedCategories });
-      Alert.alert("Success", "Habit created!");
+      await addHabit(user.uid, {
+        name: name.trim(),
+        description: description.trim() || null,
+        frequency,
+        reminderTime: reminderTime || null,
+        categories: selectedCategories,
+        color: selectedColor,
+      });
+
+      Alert.alert("Success", "Habit created successfully!");
       navigation.goBack();
     } catch (error) {
+      console.error("Habit creation error:", error);
       Alert.alert("Error", error.message || "Failed to create habit");
     } finally {
       setLoading(false);
@@ -168,6 +194,24 @@ export default function AddHabitScreen({ navigation }) {
                   {cat.label}
                 </Text>
               </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Color Selection Section */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Color</Text>
+          <View style={styles.colorGrid}>
+            {COLORS.map((color) => (
+              <TouchableOpacity
+                key={color}
+                onPress={() => setSelectedColor(color)}
+                style={[
+                  styles.colorOption,
+                  { backgroundColor: color },
+                  selectedColor === color && styles.colorSelected,
+                ]}
+              />
             ))}
           </View>
         </View>
@@ -336,6 +380,27 @@ const styles = StyleSheet.create({
   categoryLabelActive: {
     color: "#0f766e",
     fontWeight: "600",
+  },
+  // Color picker styles
+  colorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    justifyContent: "center",
+  },
+  colorOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  colorSelected: {
+    borderWidth: 4,
+    borderColor: "#ffffff",
   },
   insightCard: {
     backgroundColor: "#faf5ff",
