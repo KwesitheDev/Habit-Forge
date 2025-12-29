@@ -10,8 +10,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
-import { subscribeToHabits } from "../services/firestore";
+import {
+  subscribeToHabits,
+  toggleCompletion,
+  getCompletionDates,
+} from "../services/firestore";
 import { Alert } from "react-native";
+import { CalculateStreak } from "../utils/streak";
 
 // Map category ID → emoji for display
 const CATEGORY_EMOJIS = {
@@ -26,6 +31,7 @@ const CATEGORY_EMOJIS = {
 export default function DashboardScreen({ navigation }) {
   const { user } = useAuth();
   const [habits, setHabits] = useState([]);
+  const [completionMap, setCompletionMap] = useState({});
 
   useEffect(() => {
     if (!user) return;
@@ -33,25 +39,53 @@ export default function DashboardScreen({ navigation }) {
     return () => unsubscribe();
   }, [user]);
 
-  // Temporary mock values until check-in/streak logic (Session 6)
-  const getDisplayData = (habit) => ({
-    name: habit.name,
-    streak: 0, // placeholder
-    progress: Math.floor(Math.random() * 100), // placeholder
-    completed: false, // placeholder
-    icon:
-      habit.categories?.length > 0
-        ? CATEGORY_EMOJIS[habit.categories[0]] || "🎯"
-        : "🎯",
-    color: habit.color ? `${habit.color}22` : "#e0f2fe", // 22 = ~13% opacity
-  });
+  useEffect(() => {
+    if (!user || habits.length === 0) return;
 
-  const toggleHabit = (id) => {
-    // Placeholder — real check-in in next session
-    Alert.alert("Coming soon", "Daily check-in arriving in next update!");
+    const fetchCompletions = async () => {
+      const map = {};
+      for (const habit of habits) {
+        map[habit.id] = await getCompletionDates(user.uid, habit.id);
+      }
+      setCompletionMap(map);
+    };
+    fetchCompletions();
+  }, [habits, user]);
+
+  const toggleHabit = async (habitId) => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    await toggleCompletion(user.uid, habitId, todayStr);
+
+    // Optimistic update
+    setCompletionMap((prev) => {
+      const dates = prev[habitId] || [];
+      const newDates = dates.includes(todayStr)
+        ? dates.filter((d) => d !== todayStr)
+        : [...dates, todayStr].sort();
+      return { ...prev, [habitId]: newDates };
+    });
   };
 
-  const totalStreak = habits.reduce((sum, h) => sum + (h.streak || 0), 0); // placeholder
+  const getDisplayData = (habit) => {
+    const dates = completionMap[habit.id] || [];
+    const streak = CalculateStreak(dates);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const completedToday = dates.includes(todayStr);
+
+    return {
+      name: habit.name,
+      streak,
+      progress: streak > 0 ? Math.round(Math.min(100, (streak / 30) * 100)) : 0, // simple placeholder
+      completed: completedToday,
+      icon:
+        habit.categories?.length > 0
+          ? CATEGORY_EMOJIS[habit.categories[0]] || "🎯"
+          : "🎯",
+      color: habit.color ? `${habit.color}22` : "#e0f2fe",
+    };
+  };
+
+  const totalStreak = habits.reduce((sum, h) => sum + (h.streak || 0), 0);
 
   return (
     <SafeAreaView style={styles.container}>
