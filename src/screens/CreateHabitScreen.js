@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { addHabit } from "../services/firestore";
+import { scheduleHabitReminder } from "../utils/notifications";
 
 const CATEGORIES = [
   { id: "health", label: "Health", emoji: "❤️" },
