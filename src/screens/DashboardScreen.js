@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,8 @@ import {
 } from "../services/firestore";
 import { Alert } from "react-native";
 import { CalculateStreak } from "../utils/streak";
+import { generateInsight } from "../utils/insights";
+import { setupTf as initTF } from "../utils/tfSetup";
 
 // Map category ID → emoji for display
 const CATEGORY_EMOJIS = {
@@ -28,17 +31,35 @@ const CATEGORY_EMOJIS = {
   social: "👥",
 };
 
+// Insight card gradient themes
+const INSIGHT_THEMES = [
+  { colors: ["#f59e0b", "#f97316"], icon: "bulb" },
+  { colors: ["#8b5cf6", "#a855f7"], icon: "sparkles" },
+  { colors: ["#06b6d4", "#0891b2"], icon: "trophy" },
+  { colors: ["#ec4899", "#d946ef"], icon: "rocket" },
+];
+
 export default function DashboardScreen({ navigation }) {
   const { user } = useAuth();
   const [habits, setHabits] = useState([]);
   const [completionMap, setCompletionMap] = useState({});
+  const [insight, setInsight] = useState("Loading insights...");
+  const [insightLoading, setInsightLoading] = useState(true);
+  const [currentTheme, setCurrentTheme] = useState(0);
 
+  // proof TF.js works
+  useEffect(() => {
+    initTF();
+  }, []);
+
+  // Fetch habits
   useEffect(() => {
     if (!user) return;
     const unsubscribe = subscribeToHabits(user.uid, setHabits);
     return () => unsubscribe();
   }, [user]);
 
+  // Fetch completion dates
   useEffect(() => {
     if (!user || habits.length === 0) return;
 
@@ -52,6 +73,19 @@ export default function DashboardScreen({ navigation }) {
     fetchCompletions();
   }, [habits, user]);
 
+  // Generate insights
+  useEffect(() => {
+    if (habits.length > 0 && completionMap) {
+      setInsightLoading(true);
+      const newInsight = generateInsight(habits, completionMap);
+      setInsight(newInsight);
+      setInsightLoading(false);
+      // Rotate theme
+      setCurrentTheme((prev) => (prev + 1) % INSIGHT_THEMES.length);
+    }
+  }, [habits, completionMap]);
+
+  // Toggle completion
   const toggleHabit = async (habitId) => {
     const todayStr = new Date().toISOString().slice(0, 10);
     await toggleCompletion(user.uid, habitId, todayStr);
@@ -66,6 +100,7 @@ export default function DashboardScreen({ navigation }) {
     });
   };
 
+  // Generate display data
   const getDisplayData = (habit) => {
     const dates = completionMap[habit.id] || [];
     const streak = CalculateStreak(dates);
@@ -75,7 +110,7 @@ export default function DashboardScreen({ navigation }) {
     return {
       name: habit.name,
       streak,
-      progress: streak > 0 ? Math.round(Math.min(100, (streak / 30) * 100)) : 0, // simple placeholder
+      progress: streak > 0 ? Math.round(Math.min(100, (streak / 30) * 100)) : 0,
       completed: completedToday,
       icon:
         habit.categories?.length > 0
@@ -85,7 +120,13 @@ export default function DashboardScreen({ navigation }) {
     };
   };
 
-  const totalStreak = habits.reduce((sum, h) => sum + (h.streak || 0), 0);
+  const totalStreak = habits.reduce((sum, h) => {
+    const dates = completionMap[h.id] || [];
+    const streak = CalculateStreak(dates);
+    return sum + streak;
+  }, 0);
+
+  const theme = INSIGHT_THEMES[currentTheme];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,10 +174,49 @@ export default function DashboardScreen({ navigation }) {
           contentContainerStyle={styles.habitsListContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* AI Insight Card */}
+          {habits.length > 0 && (
+            <LinearGradient
+              colors={theme.colors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.insightCard}
+            >
+              <View style={styles.insightHeader}>
+                <View style={styles.insightIconContainer}>
+                  <Ionicons name={theme.icon} size={20} color="#fff" />
+                </View>
+                <Text style={styles.insightTitle}>AI Motivational Insight</Text>
+              </View>
+
+              {insightLoading ? (
+                <View style={styles.insightLoadingContainer}>
+                  <ActivityIndicator color="#fff" />
+                  <Text style={styles.insightLoadingText}>
+                    Analyzing your progress...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.insightText}>{insight}</Text>
+              )}
+
+              <View style={styles.insightFooter}>
+                <Ionicons name="heart" size={14} color="#fff" />
+                <Text style={styles.insightFooterText}>Powered by AI</Text>
+              </View>
+            </LinearGradient>
+          )}
+
+          {/* Habits Cards */}
           {habits.length === 0 ? (
-            <Text style={styles.emptyText}>
-              No habits yet. Tap + to create your first!
-            </Text>
+            <View style={styles.emptyContainer}>
+              <Ionicons name="rocket-outline" size={64} color="#cbd5e1" />
+              <Text style={styles.emptyTitle}>Start Your Journey</Text>
+              <Text style={styles.emptyText}>
+                No habits yet. Tap the + button below to create your first habit
+                and start building a better you!
+              </Text>
+            </View>
           ) : (
             habits.map((habit) => {
               const display = getDisplayData(habit);
@@ -163,7 +243,7 @@ export default function DashboardScreen({ navigation }) {
                         </View>
                         <Text style={styles.metaDot}>•</Text>
                         <Text style={styles.metaText}>
-                          {display.progress}% this week
+                          {display.progress}% progress
                         </Text>
                       </View>
                     </View>
@@ -314,6 +394,64 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 100,
   },
+  insightCard: {
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  insightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  insightIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  insightTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+    flex: 1,
+  },
+  insightText: {
+    fontSize: 15,
+    color: "#fff",
+    lineHeight: 24,
+    opacity: 0.95,
+  },
+  insightLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  insightLoadingText: {
+    fontSize: 15,
+    color: "#fff",
+    opacity: 0.9,
+  },
+  insightFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    gap: 6,
+    opacity: 0.8,
+  },
+  insightFooterText: {
+    fontSize: 12,
+    color: "#fff",
+    fontWeight: "500",
+  },
   habitCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -392,6 +530,25 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#14b8a6",
     borderRadius: 4,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#334155",
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: "#64748b",
+    textAlign: "center",
+    lineHeight: 22,
   },
   fab: {
     position: "absolute",
