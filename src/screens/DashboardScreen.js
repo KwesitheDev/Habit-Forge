@@ -292,7 +292,10 @@ export default function DashboardScreen({ navigation }) {
             <Ionicons name="home" size={24} color="#0d9488" />
             <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navButton}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigation.navigate("Analytics")}
+          >
             <Ionicons name="bar-chart" size={24} color="#94a3b8" />
             <Text style={styles.navLabel}>Analytics</Text>
           </TouchableOpacity>
