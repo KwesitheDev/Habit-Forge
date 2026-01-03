@@ -11,7 +11,7 @@ import DashboardScreen from "./src/screens/DashboardScreen";
 import CreateHabitScreen from "./src/screens/CreateHabitScreen";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 import AnalyticsScreen from "./src/screens/AnalyticsScreen";
-import { HabitsProvider } from "./src/context/HabitContext";
+import { HabitsProvider } from "./src/context/HabitsContext";
 
 const Stack = createNativeStackNavigator();
 
