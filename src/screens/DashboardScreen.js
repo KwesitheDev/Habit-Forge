@@ -11,12 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
-import {
-  subscribeToHabits,
-  toggleCompletion,
-  getCompletionDates,
-} from "../services/firestore";
-import { Alert } from "react-native";
+import { useHabits } from "../context/HabitsContext"; // ✅ Import useHabits
 import { CalculateStreak } from "../utils/streak";
 import { generateInsight } from "../utils/insights";
 import { setupTf as initTF } from "../utils/tfSetup";
@@ -41,8 +36,10 @@ const INSIGHT_THEMES = [
 
 export default function DashboardScreen({ navigation }) {
   const { user } = useAuth();
-  const [habits, setHabits] = useState([]);
-  const [completionMap, setCompletionMap] = useState({});
+
+  // ✅ Use the habits context instead of local state
+  const { habits, completionMap, loading, toggleHabitCompletion } = useHabits();
+
   const [insight, setInsight] = useState("Loading insights...");
   const [insightLoading, setInsightLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState(0);
@@ -52,52 +49,20 @@ export default function DashboardScreen({ navigation }) {
     initTF();
   }, []);
 
-  // Fetch habits
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = subscribeToHabits(user.uid, setHabits);
-    return () => unsubscribe();
-  }, [user]);
-
-  // Fetch completion dates
-  useEffect(() => {
-    if (!user || habits.length === 0) return;
-
-    const fetchCompletions = async () => {
-      const map = {};
-      for (const habit of habits) {
-        map[habit.id] = await getCompletionDates(user.uid, habit.id);
-      }
-      setCompletionMap(map);
-    };
-    fetchCompletions();
-  }, [habits, user]);
-
   // Generate insights
   useEffect(() => {
-    if (habits.length > 0 && completionMap) {
+    if (habits.length > 0 && Object.keys(completionMap).length > 0) {
       setInsightLoading(true);
       const newInsight = generateInsight(habits, completionMap);
       setInsight(newInsight);
       setInsightLoading(false);
-      // Rotate theme
       setCurrentTheme((prev) => (prev + 1) % INSIGHT_THEMES.length);
     }
   }, [habits, completionMap]);
 
-  // Toggle completion
+  // ✅ Use context function for toggling
   const toggleHabit = async (habitId) => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    await toggleCompletion(user.uid, habitId, todayStr);
-
-    // Optimistic update
-    setCompletionMap((prev) => {
-      const dates = prev[habitId] || [];
-      const newDates = dates.includes(todayStr)
-        ? dates.filter((d) => d !== todayStr)
-        : [...dates, todayStr].sort();
-      return { ...prev, [habitId]: newDates };
-    });
+    await toggleHabitCompletion(habitId);
   };
 
   // Generate display data
@@ -127,6 +92,18 @@ export default function DashboardScreen({ navigation }) {
   }, 0);
 
   const theme = INSIGHT_THEMES[currentTheme];
+
+  // ✅ Show loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0d9488" />
+          <Text style={styles.loadingText}>Loading your habits...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -286,7 +263,7 @@ export default function DashboardScreen({ navigation }) {
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
 
-        {/* Bottom Nav */}
+        {/* Bottom Nav - ✅ No need to pass data anymore */}
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navButton}>
             <Ionicons name="home" size={24} color="#0d9488" />
@@ -313,6 +290,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#64748b",
   },
   content: {
     flex: 1,
