@@ -10,6 +10,7 @@ import RegisterScreen from "./src/screens/RegisterScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
 import CreateHabitScreen from "./src/screens/CreateHabitScreen";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
+import AnalyticsScreen from "./src/screens/AnalyticsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,7 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="Analytics" component={AnalyticsScreen} />
         </Stack.Navigator>
         <StatusBar style="auto" />
       </NavigationContainer>
