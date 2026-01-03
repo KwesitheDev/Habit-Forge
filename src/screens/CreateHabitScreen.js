@@ -62,7 +62,7 @@ export default function AddHabitScreen({ navigation }) {
 
     setLoading(true);
     try {
-      await addHabit(user.uid, {
+      const docRef = await addHabit(user.uid, {
         name: name.trim(),
         description: description.trim() || null,
         frequency,
@@ -70,6 +70,17 @@ export default function AddHabitScreen({ navigation }) {
         categories: selectedCategories,
         color: selectedColor,
       });
+
+      const newHabit = {
+        id: docRef.id,
+        name: name.trim(),
+        description: description.trim() || null,
+        frequency,
+        reminderTime: reminderTime || null,
+        categories: selectedCategories,
+        color: selectedColor,
+      };
+      await scheduleHabitReminder(newHabit);
 
       Alert.alert("Success", "Habit created successfully!");
       navigation.goBack();
