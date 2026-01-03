@@ -1,46 +1,55 @@
 import { CalculateStreak } from "./streak";
 
 const INSIGHTS = {
-  newHabit: [
-    "Great start! Consistency compounds — small actions today build big results tomorrow.",
-    "You're taking the first step toward lasting change. Keep showing up!",
+  zero: [
+    "Today is day one. Small steps compound into massive change.",
+    "Every expert was once a beginner. Start now.",
   ],
-  shortStreak: [
-    "You're on a {streak}-day streak — momentum is building!",
-    "Every completed day makes the next one easier.",
+  building: [
+    "You're on a {streak}-day streak — momentum is your superpower.",
+    "Consistency beats intensity every time.",
   ],
-  longStreak: [
-    "Incredible {streak}-day streak! You're proving habits are built one day at a time.",
-    "This discipline will pay off in ways you can't yet imagine.",
+  strong: [
+    "Impressive {streak}-day streak! You're building unbreakable discipline.",
+    "This level of commitment separates you from the crowd.",
   ],
-  missedDay: [
-    "Everyone has off days. Today is a fresh chance to rebuild momentum.",
-    "One slip doesn't erase your progress — get back on track now.",
+  recovery: [
+    "One missed day doesn't erase your progress. Recommit today.",
+    "The best time to get back on track is right now.",
   ],
 };
 
 export const generateInsight = (habits, completionMap) => {
-  const totalHabits = habits.length;
-  const totalStreak = habits.reduce((sum, h) => {
-    const dates = completionMap[h.id] || [];
-    return sum + CalculateStreak(dates);
-  }, 0);
+  if (!habits || habits.length === 0) {
+    return "Ready to transform? Create your first habit today!";
+  }
 
-  if (totalHabits === 0) return "Ready to build new habits? Start one today.";
+  let totalStreak = 0;
+  let hasMissedToday = true;
+  habits.forEach((habit) => {
+    const dates = completionMap[habit.id] || [];
+    totalStreak += CalculateStreak(dates);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (dates.includes(todayStr)) hasMissedToday = false;
+  });
+
+  if (hasMissedToday && totalStreak > 0) {
+    return INSIGHTS.recovery[
+      Math.floor(Math.random() * INSIGHTS.recovery.length)
+    ];
+  }
 
   if (totalStreak === 0) {
-    const missed =
-      INSIGHTS.missedDay[Math.floor(Math.random() * INSIGHTS.missedDay.length)];
-    return missed;
+    return INSIGHTS.zero[Math.floor(Math.random() * INSIGHTS.zero.length)];
   }
 
   if (totalStreak < 7) {
-    return INSIGHTS.shortStreak[
-      Math.floor(Math.random() * INSIGHTS.shortStreak.length)
+    return INSIGHTS.building[
+      Math.floor(Math.random() * INSIGHTS.building.length)
     ].replace("{streak}", totalStreak);
   }
 
-  return INSIGHTS.longStreak[
-    Math.floor(Math.random() * INSIGHTS.longStreak.length)
+  return INSIGHTS.strong[
+    Math.floor(Math.random() * INSIGHTS.strong.length)
   ].replace("{streak}", totalStreak);
 };
