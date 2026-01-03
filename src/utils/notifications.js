@@ -43,9 +43,11 @@ export async function scheduleHabitReminder(habit) {
       sound: true,
     },
     trigger: {
+      type: Notifications.trigger.DAILY,
       hour: hours,
       minute: minutes,
       repeats: true,
+      channelId: Platform.OS === "android" ? "habit-reminders" : undefined,
     },
   });
 }
