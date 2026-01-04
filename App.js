@@ -12,6 +12,7 @@ import CreateHabitScreen from "./src/screens/CreateHabitScreen";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 import AnalyticsScreen from "./src/screens/AnalyticsScreen";
 import { HabitsProvider } from "./src/context/HabitsContext";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +34,7 @@ export default function App() {
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="Dashboard" component={DashboardScreen} />
             <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
           </Stack.Navigator>
           <StatusBar style="auto" />
         </NavigationContainer>
