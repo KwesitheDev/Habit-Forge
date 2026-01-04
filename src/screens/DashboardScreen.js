@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
-import { useHabits } from "../context/HabitsContext"; // ✅ Import useHabits
+import { useHabits } from "../context/HabitsContext";
 import { CalculateStreak } from "../utils/streak";
 import { generateInsight } from "../utils/insights";
 import { setupTf as initTF } from "../utils/tfSetup";
@@ -276,7 +276,10 @@ export default function DashboardScreen({ navigation }) {
             <Ionicons name="bar-chart" size={24} color="#94a3b8" />
             <Text style={styles.navLabel}>Analytics</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navButton}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigation.navigate("Profile")}
+          >
             <Ionicons name="person" size={24} color="#94a3b8" />
             <Text style={styles.navLabel}>Profile</Text>
           </TouchableOpacity>
