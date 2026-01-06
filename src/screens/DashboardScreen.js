@@ -3,10 +3,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,8 +39,6 @@ const INSIGHT_THEMES = [
 
 export default function DashboardScreen({ navigation }) {
   const { user } = useAuth();
-
-  // Use the habits context instead of local state
   const {
     habits,
     completionMap,
@@ -53,12 +51,10 @@ export default function DashboardScreen({ navigation }) {
   const [insightLoading, setInsightLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState(0);
 
-  // proof TF.js works
   useEffect(() => {
     initTF();
   }, []);
 
-  // Generate insights
   useEffect(() => {
     if (habits.length > 0 && Object.keys(completionMap).length > 0) {
       setInsightLoading(true);
@@ -69,12 +65,10 @@ export default function DashboardScreen({ navigation }) {
     }
   }, [habits, completionMap]);
 
-  //  Use context function for toggling
   const toggleHabit = async (habitId) => {
     await toggleHabitCompletion(habitId);
   };
 
-  // confirm delete
   const confirmDelete = (habitId) => {
     Alert.alert(
       "Delete Habit",
@@ -90,7 +84,6 @@ export default function DashboardScreen({ navigation }) {
     );
   };
 
-  // Render a delete action for a habit item
   const renderRightActions = (habitId) => (
     <TouchableOpacity
       style={styles.deleteAction}
@@ -102,7 +95,6 @@ export default function DashboardScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  // Generate display data
   const getDisplayData = (habit) => {
     const dates = completionMap[habit.id] || [];
     const streak = CalculateStreak(dates);
@@ -130,7 +122,6 @@ export default function DashboardScreen({ navigation }) {
 
   const theme = INSIGHT_THEMES[currentTheme];
 
-  // ✅ Show loading state
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -143,8 +134,11 @@ export default function DashboardScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+
+      {/* Main Content Wrapper (Flex 1 ensures it takes available space above nav) */}
+      <View style={styles.mainContent}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
@@ -154,7 +148,10 @@ export default function DashboardScreen({ navigation }) {
                 Keep building your best self
               </Text>
             </View>
-            <TouchableOpacity style={styles.profileButton}>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => navigation.navigate("Profile")}
+            >
               <Ionicons name="person" size={24} color="#0d9488" />
             </TouchableOpacity>
           </View>
@@ -182,7 +179,7 @@ export default function DashboardScreen({ navigation }) {
           </LinearGradient>
         </View>
 
-        {/* Habits List */}
+        {/* Scrollable Habits List */}
         <ScrollView
           style={styles.habitsList}
           contentContainerStyle={styles.habitsListContent}
@@ -227,8 +224,8 @@ export default function DashboardScreen({ navigation }) {
               <Ionicons name="rocket-outline" size={64} color="#cbd5e1" />
               <Text style={styles.emptyTitle}>Start Your Journey</Text>
               <Text style={styles.emptyText}>
-                No habits yet. Tap the + button below to create your first habit
-                and start building a better you!
+                No habits yet. Tap the + button below to create your first
+                habit.
               </Text>
             </View>
           ) : (
@@ -240,7 +237,7 @@ export default function DashboardScreen({ navigation }) {
                   renderRightActions={() => renderRightActions(habit.id)}
                   overshootRight={false}
                 >
-                  <View key={habit.id} style={styles.habitCard}>
+                  <View style={styles.habitCard}>
                     <View style={styles.habitRow}>
                       <View
                         style={[
@@ -297,36 +294,46 @@ export default function DashboardScreen({ navigation }) {
           )}
         </ScrollView>
 
-        {/* FAB */}
+        {/* FAB (Inside main content but absolute positioned) */}
         <TouchableOpacity
           onPress={() => navigation.navigate("CreateHabit")}
           style={styles.fab}
           activeOpacity={0.8}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Bottom Navigation (Fixed at bottom) */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navButtonActive} activeOpacity={0.7}>
+          <View style={styles.navIconContainerActive}>
+            <Ionicons name="home" size={24} color="#0d9488" />
+          </View>
+          <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
         </TouchableOpacity>
 
-        {/* Bottom Nav - ✅ No need to pass data anymore */}
-        <View style={styles.bottomNav}>
-          <TouchableOpacity style={styles.navButton}>
-            <Ionicons name="home" size={24} color="#0d9488" />
-            <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => navigation.navigate("Analytics")}
-          >
-            <Ionicons name="bar-chart" size={24} color="#94a3b8" />
-            <Text style={styles.navLabel}>Analytics</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            <Ionicons name="person" size={24} color="#94a3b8" />
-            <Text style={styles.navLabel}>Profile</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.navigate("Analytics")}
+          activeOpacity={0.7}
+        >
+          <View style={styles.navIconContainer}>
+            <Ionicons name="bar-chart-outline" size={24} color="#94a3b8" />
+          </View>
+          <Text style={styles.navLabel}>Analytics</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={() => navigation.navigate("Profile")}
+          activeOpacity={0.7}
+        >
+          <View style={styles.navIconContainer}>
+            <Ionicons name="person-outline" size={24} color="#94a3b8" />
+          </View>
+          <Text style={styles.navLabel}>Profile</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
