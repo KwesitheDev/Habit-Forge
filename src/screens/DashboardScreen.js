@@ -15,6 +15,8 @@ import { useHabits } from "../context/HabitsContext";
 import { CalculateStreak } from "../utils/streak";
 import { generateInsight } from "../utils/insights";
 import { setupTf as initTF } from "../utils/tfSetup";
+import { Swipeable } from "react-native-gesture-handler";
+import { Alert } from "react-native";
 
 // Map category ID → emoji for display
 const CATEGORY_EMOJIS = {
@@ -37,8 +39,14 @@ const INSIGHT_THEMES = [
 export default function DashboardScreen({ navigation }) {
   const { user } = useAuth();
 
-  // ✅ Use the habits context instead of local state
-  const { habits, completionMap, loading, toggleHabitCompletion } = useHabits();
+  // Use the habits context instead of local state
+  const {
+    habits,
+    completionMap,
+    loading,
+    toggleHabitCompletion,
+    deleteHabitById,
+  } = useHabits();
 
   const [insight, setInsight] = useState("Loading insights...");
   const [insightLoading, setInsightLoading] = useState(true);
@@ -60,10 +68,38 @@ export default function DashboardScreen({ navigation }) {
     }
   }, [habits, completionMap]);
 
-  // ✅ Use context function for toggling
+  //  Use context function for toggling
   const toggleHabit = async (habitId) => {
     await toggleHabitCompletion(habitId);
   };
+
+  // confirm delete
+  const confirmDelete = (habitId) => {
+    Alert.alert(
+      "Delete Habit",
+      "Are you sure you want to delete this habit? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteHabitById(habitId),
+        },
+      ]
+    );
+  };
+
+  // Render a delete action for a habit item
+  const renderRightActions = (habitId) => (
+    <TouchableOpacity
+      style={styles.deleteAction}
+      onPress={() => confirmDelete(habitId)}
+      activeOpacity={0.8}
+    >
+      <Ionicons name="trash" size={22} color="#fff" />
+      <Text style={styles.deleteActionText}>Delete</Text>
+    </TouchableOpacity>
+  );
 
   // Generate display data
   const getDisplayData = (habit) => {
@@ -198,57 +234,63 @@ export default function DashboardScreen({ navigation }) {
             habits.map((habit) => {
               const display = getDisplayData(habit);
               return (
-                <View key={habit.id} style={styles.habitCard}>
-                  <View style={styles.habitRow}>
-                    <View
-                      style={[
-                        styles.habitIcon,
-                        { backgroundColor: display.color },
-                      ]}
-                    >
-                      <Text style={styles.habitEmoji}>{display.icon}</Text>
-                    </View>
+                <Swipeable
+                  key={habit.id}
+                  renderRightActions={() => renderRightActions(habit.id)}
+                  overshootRight={false}
+                >
+                  <View key={habit.id} style={styles.habitCard}>
+                    <View style={styles.habitRow}>
+                      <View
+                        style={[
+                          styles.habitIcon,
+                          { backgroundColor: display.color },
+                        ]}
+                      >
+                        <Text style={styles.habitEmoji}>{display.icon}</Text>
+                      </View>
 
-                    <View style={styles.habitInfo}>
-                      <Text style={styles.habitName}>{display.name}</Text>
-                      <View style={styles.habitMeta}>
-                        <View style={styles.metaItem}>
-                          <Ionicons name="flame" size={14} color="#f97316" />
+                      <View style={styles.habitInfo}>
+                        <Text style={styles.habitName}>{display.name}</Text>
+                        <View style={styles.habitMeta}>
+                          <View style={styles.metaItem}>
+                            <Ionicons name="flame" size={14} color="#f97316" />
+                            <Text style={styles.metaText}>
+                              {display.streak} days
+                            </Text>
+                          </View>
+                          <Text style={styles.metaDot}>•</Text>
                           <Text style={styles.metaText}>
-                            {display.streak} days
+                            {display.progress}% progress
                           </Text>
                         </View>
-                        <Text style={styles.metaDot}>•</Text>
-                        <Text style={styles.metaText}>
-                          {display.progress}% progress
-                        </Text>
                       </View>
+
+                      <TouchableOpacity
+                        onPress={() => toggleHabit(habit.id)}
+                        style={[
+                          styles.checkButton,
+                          display.completed
+                            ? styles.checkButtonCompleted
+                            : styles.checkButtonUncompleted,
+                        ]}
+                      >
+                        {display.completed && (
+                          <Ionicons name="checkmark" size={18} color="#fff" />
+                        )}
+                      </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity
-                      onPress={() => toggleHabit(habit.id)}
-                      style={[
-                        styles.checkButton,
-                        display.completed
-                          ? styles.checkButtonCompleted
-                          : styles.checkButtonUncompleted,
-                      ]}
-                    >
-                      {display.completed && (
-                        <Ionicons name="checkmark" size={18} color="#fff" />
-                      )}
-                    </TouchableOpacity>
+                    <View style={styles.progressBarContainer}>
+                      <View
+                        style={[
+                          styles.progressBar,
+                          { width: `${display.progress}%` },
+                        ]}
+                      />
+                    </View>
                   </View>
-
-                  <View style={styles.progressBarContainer}>
-                    <View
-                      style={[
-                        styles.progressBar,
-                        { width: `${display.progress}%` },
-                      ]}
-                    />
-                  </View>
-                </View>
+                </Swipeable>
               );
             })
           )}
@@ -581,5 +623,20 @@ const styles = StyleSheet.create({
   },
   navLabelActive: {
     color: "#0d9488",
+  },
+  deleteAction: {
+    backgroundColor: "#ef4444",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 88,
+    marginBottom: 16,
+    borderRadius: 16,
+  },
+
+  deleteActionText: {
+    color: "#fff",
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "600",
   },
 });
