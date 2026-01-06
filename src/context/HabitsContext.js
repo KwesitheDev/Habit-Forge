@@ -5,6 +5,7 @@ import {
   subscribeToHabits,
   toggleCompletion,
   getCompletionDates,
+  deleteHabit,
 } from "../services/firestore";
 
 const HabitsContext = createContext();
@@ -48,7 +49,7 @@ export function HabitsProvider({ children }) {
     fetchCompletions();
   }, [habits, user]);
 
-  // Toggle completion function
+  // Toggle completion
   const toggleHabitCompletion = async (habitId) => {
     if (!user) return;
 
@@ -63,6 +64,25 @@ export function HabitsProvider({ children }) {
         : [...dates, todayStr].sort();
       return { ...prev, [habitId]: newDates };
     });
+  };
+
+  //Delete habit
+  const deleteHabitById = async (habitId) => {
+    if (!user || !habitId) return;
+
+    // Optimistic UI update
+    setHabits((prev) => prev.filter((h) => h.id !== habitId));
+    setCompletionMap((prev) => {
+      const updated = { ...prev };
+      delete updated[habitId];
+      return updated;
+    });
+
+    try {
+      await deleteHabit(user.uid, habitId);
+    } catch (error) {
+      console.error("Failed to delete habit:", error);
+    }
   };
 
   const value = {
