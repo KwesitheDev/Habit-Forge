@@ -90,6 +90,7 @@ export function HabitsProvider({ children }) {
     completionMap,
     loading,
     toggleHabitCompletion,
+    deleteHabitById,
   };
 
   return (
