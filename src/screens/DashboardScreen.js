@@ -19,7 +19,6 @@ import { Swipeable } from "react-native-gesture-handler";
 import { Alert } from "react-native";
 import styles from "../styles/DashboardStyles";
 
-// Map category ID → emoji for display
 const CATEGORY_EMOJIS = {
   health: "❤️",
   mind: "🧘",
@@ -29,7 +28,6 @@ const CATEGORY_EMOJIS = {
   social: "👥",
 };
 
-// Insight card gradient themes
 const INSIGHT_THEMES = [
   { colors: ["#f59e0b", "#f97316"], icon: "bulb" },
   { colors: ["#8b5cf6", "#a855f7"], icon: "sparkles" },
@@ -56,7 +54,7 @@ export default function DashboardScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    if (habits.length > 0 && Object.keys(completionMap).length > 0) {
+    if (habits.length > 0) {
       setInsightLoading(true);
       const newInsight = generateInsight(habits, completionMap);
       setInsight(newInsight);
@@ -84,21 +82,35 @@ export default function DashboardScreen({ navigation }) {
     );
   };
 
-  const renderRightActions = (habitId) => (
-    <TouchableOpacity
-      style={styles.deleteAction}
-      onPress={() => confirmDelete(habitId)}
-      activeOpacity={0.8}
-    >
-      <Ionicons name="trash" size={22} color="#fff" />
-      <Text style={styles.deleteActionText}>Delete</Text>
-    </TouchableOpacity>
-  );
+  // --- DATA CALCULATIONS ---
 
+  // 1. Calculate Global Streak (Consecutive days ANY habit was performed)
+  const getGlobalStreak = () => {
+    const allDatesSet = new Set();
+    // Collect every single completion date from every habit
+    Object.values(completionMap).forEach((dates) => {
+      if (Array.isArray(dates)) {
+        dates.forEach((d) => allDatesSet.add(d));
+      }
+    });
+    // Convert to sorted array and calculate streak
+    const uniqueDates = Array.from(allDatesSet).sort();
+    return CalculateStreak(uniqueDates);
+  };
+
+  const globalStreak = getGlobalStreak();
+
+  // 2. Calculate Today's Completion Count
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const completedTodayCount = habits.reduce((count, habit) => {
+    const dates = completionMap[habit.id] || [];
+    return dates.includes(todayStr) ? count + 1 : count;
+  }, 0);
+
+  // 3. Helper for individual cards
   const getDisplayData = (habit) => {
     const dates = completionMap[habit.id] || [];
     const streak = CalculateStreak(dates);
-    const todayStr = new Date().toISOString().slice(0, 10);
     const completedToday = dates.includes(todayStr);
 
     return {
@@ -114,11 +126,16 @@ export default function DashboardScreen({ navigation }) {
     };
   };
 
-  const totalStreak = habits.reduce((sum, h) => {
-    const dates = completionMap[h.id] || [];
-    const streak = CalculateStreak(dates);
-    return sum + streak;
-  }, 0);
+  const renderRightActions = (habitId) => (
+    <TouchableOpacity
+      style={styles.deleteAction}
+      onPress={() => confirmDelete(habitId)}
+      activeOpacity={0.8}
+    >
+      <Ionicons name="trash" size={22} color="#fff" />
+      <Text style={styles.deleteActionText}>Delete</Text>
+    </TouchableOpacity>
+  );
 
   const theme = INSIGHT_THEMES[currentTheme];
 
@@ -137,7 +154,6 @@ export default function DashboardScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
 
-      {/* Main Content Wrapper (Flex 1 ensures it takes available space above nav) */}
       <View style={styles.mainContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -164,16 +180,24 @@ export default function DashboardScreen({ navigation }) {
           >
             <View style={styles.statsContent}>
               <View>
-                <Text style={styles.statsLabel}>Current Streak</Text>
+                <Text style={styles.statsLabel}>Global Streak</Text>
                 <View style={styles.streakRow}>
                   <Ionicons name="flame" size={32} color="#fff" />
-                  <Text style={styles.streakNumber}>{totalStreak}</Text>
+                  <Text style={styles.streakNumber}>{globalStreak}</Text>
                   <Text style={styles.streakDays}>days</Text>
                 </View>
               </View>
+
+              {/* Logic: If 0 done, show Total. If >0 done, show X/Y */}
               <View style={styles.totalHabits}>
-                <Text style={styles.statsLabel}>Total Habits</Text>
-                <Text style={styles.totalNumber}>{habits.length}</Text>
+                <Text style={styles.statsLabel}>
+                  {completedTodayCount > 0 ? "Completed Today" : "Total Habits"}
+                </Text>
+                <Text style={styles.totalNumber}>
+                  {completedTodayCount > 0
+                    ? `${completedTodayCount}/${habits.length}`
+                    : habits.length}
+                </Text>
               </View>
             </View>
           </LinearGradient>
@@ -294,7 +318,7 @@ export default function DashboardScreen({ navigation }) {
           )}
         </ScrollView>
 
-        {/* FAB (Inside main content but absolute positioned) */}
+        {/* FAB */}
         <TouchableOpacity
           onPress={() => navigation.navigate("CreateHabit")}
           style={styles.fab}
@@ -304,7 +328,7 @@ export default function DashboardScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Navigation (Fixed at bottom) */}
+      {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navButtonActive} activeOpacity={0.7}>
           <View style={styles.navIconContainerActive}>
