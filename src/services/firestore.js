@@ -86,3 +86,24 @@ export const getCompletionDates = async (uid, habitId) => {
   );
   return completionSnap.docs.map((d) => d.id);
 };
+
+// delete Habit
+export const deleteHabit = async (uid, habitId) => {
+  if (!uid || !habitId) throw new Error("Invalid parameter. ");
+
+  //Delete all completions first
+  const completionsRef = collection(
+    db,
+    "users",
+    uid,
+    "habits",
+    habitId,
+    "completions"
+  );
+  const completionSnap = await getDocs(completionsRef);
+  const deletePromises = completionSnap.docs.map((doc) => deleteDoc(doc.ref));
+  await Promise.all(deletePromises);
+
+  // delete the habit doc
+  await deleteDoc(doc(db, "users", uid, "habits", habitId));
+};
