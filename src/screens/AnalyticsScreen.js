@@ -87,7 +87,7 @@ export default function AnalyticsScreen() {
 
   const weeklyPercentages = last7Days.map((date) => {
     const completed = habits.filter((h) =>
-      (completionMap[h.id] || []).includes(date)
+      (completionMap[h.id] || []).includes(date),
     ).length;
     return habits.length > 0
       ? Math.round((completed / habits.length) * 100)
@@ -95,12 +95,12 @@ export default function AnalyticsScreen() {
   });
 
   const avgWeeklyCompletion = Math.round(
-    weeklyPercentages.reduce((a, b) => a + b, 0) / weeklyPercentages.length
+    weeklyPercentages.reduce((a, b) => a + b, 0) / weeklyPercentages.length,
   );
 
   const bestStreak = Math.max(
     ...habits.map((h) => CalculateStreak(completionMap[h.id] || [])),
-    0
+    0,
   );
 
   const currentMonth = new Date().getMonth();
@@ -151,19 +151,19 @@ export default function AnalyticsScreen() {
       const isFuture = d > today;
 
       const completedCount = habits.filter((h) =>
-        (completionMap[h.id] || []).includes(dateStr)
+        (completionMap[h.id] || []).includes(dateStr),
       ).length;
 
       const completionLevel =
         completedCount === 0
           ? 0
           : completedCount < habits.length * 0.33
-          ? 1
-          : completedCount < habits.length * 0.66
-          ? 2
-          : completedCount < habits.length
-          ? 3
-          : 4;
+            ? 1
+            : completedCount < habits.length * 0.66
+              ? 2
+              : completedCount < habits.length
+                ? 3
+                : 4;
 
       days.push({
         date: d.getDate(),
@@ -265,10 +265,10 @@ export default function AnalyticsScreen() {
                 {avgWeeklyCompletion >= 80
                   ? "🌟 Outstanding! You're crushing it! Keep up the amazing work."
                   : avgWeeklyCompletion >= 60
-                  ? "💪 Great progress! You're building strong habits."
-                  : avgWeeklyCompletion >= 40
-                  ? "📈 Good start! Stay consistent to see better results."
-                  : "🚀 Every step counts! Focus on one habit at a time."}
+                    ? "💪 Great progress! You're building strong habits."
+                    : avgWeeklyCompletion >= 40
+                      ? "📈 Good start! Stay consistent to see better results."
+                      : "🚀 Every step counts! Focus on one habit at a time."}
               </Text>
             </View>
           </LinearGradient>
@@ -345,7 +345,7 @@ export default function AnalyticsScreen() {
                       {
                         backgroundColor: getCompletionColor(
                           day.completionLevel,
-                          day.isFuture
+                          day.isFuture,
                         ),
                       },
                       day.isToday && styles.dayToday,
@@ -358,7 +358,7 @@ export default function AnalyticsScreen() {
                           color: getTextColor(
                             day.completionLevel,
                             day.isToday,
-                            day.isFuture
+                            day.isFuture,
                           ),
                         },
                         day.isToday && styles.todayNumber,
