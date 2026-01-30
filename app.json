@@ -17,7 +17,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.HabitForge"
+      "bundleIdentifier": "com.kwesithedev.HabitForge",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,13 +28,24 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.HabitForge"
+      "package": "com.kwesithedev.HabitForge"
     },
     "web": {},
     "plugins": [
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d0af4508-76c1-4a45-9126-fd8c889dfb74"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d0af4508-76c1-4a45-9126-fd8c889dfb74"
+    }
   }
 }
